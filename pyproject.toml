@@ -1,0 +1,44 @@
+[project]
+name = "multi-domain-rag-agent"
+version = "1.0.0"
+description = "An extensible retrieval-augmented question-answering system with pluggable LLM, embedding and vector-store providers, an OpenAI-compatible API, and an MCP server."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+keywords = ["rag", "llm", "langgraph", "mcp", "vector-search", "retrieval"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.scripts]
+rag-agent = "cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4"]
+ignore = [
+    "E501",  # line length is handled by the formatter
+    "B008",  # FastAPI's Depends()/Security() idiom needs calls in defaults
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011"]

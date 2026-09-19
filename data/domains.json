@@ -1,0 +1,70 @@
+{
+  "_comment": "Display metadata for the knowledge domains in this corpus. Optional: a domain with no entry here falls back to a title-cased version of its folder name. Groups are used to organise the domain picker in the UIs.",
+  "groups": [
+    {
+      "name": "Commerce",
+      "domains": ["order_service", "payment_service"]
+    },
+    {
+      "name": "Platform",
+      "domains": ["identity_verification_service", "notification_service", "workflow_engine"]
+    }
+  ],
+  "domains": {
+    "order_service": {
+      "label": "Order Service",
+      "description": "Order lifecycle, state machine, inventory reservation and the order API.",
+      "faqs": [
+        "What are the valid order state transitions?",
+        "How does idempotency work when creating an order?",
+        "What happens if the Payment Service is unreachable?",
+        "How long is inventory reserved for an unpaid order?",
+        "Which events does the Order Service publish?"
+      ]
+    },
+    "payment_service": {
+      "label": "Payment Service",
+      "description": "Provider abstraction, authorize/capture, refunds, retries and reconciliation.",
+      "faqs": [
+        "How is a payment provider selected for an order?",
+        "What is the difference between authorize and capture?",
+        "Which payment errors are safe to retry?",
+        "How does the circuit breaker behave during a provider outage?",
+        "Why is a payment stuck in PENDING?"
+      ]
+    },
+    "identity_verification_service": {
+      "label": "Identity Verification",
+      "description": "Assurance levels, verification steps, the decision engine and manual review.",
+      "faqs": [
+        "What are the assurance levels and how do they differ?",
+        "How does the decision engine choose between approve, reject and review?",
+        "What happens when a verification session expires?",
+        "How is verification evidence stored and retained?",
+        "When is a session routed to manual review?"
+      ]
+    },
+    "notification_service": {
+      "label": "Notification Service",
+      "description": "Event-driven delivery, templates, preferences, rate limits and retries.",
+      "faqs": [
+        "How are domain events mapped to notification templates?",
+        "Which notifications can a customer opt out of?",
+        "What are the per-customer rate limits?",
+        "How are delivery failures retried and dead-lettered?",
+        "How does suppression work after a hard bounce?"
+      ]
+    },
+    "workflow_engine": {
+      "label": "Workflow Engine",
+      "description": "Workflow graphs, execution model, waiting steps, compensation and versioning.",
+      "faqs": [
+        "How does the engine decide when a step can run?",
+        "What happens to a run when a step fails?",
+        "How do waiting steps and signals work?",
+        "Why must handlers be idempotent?",
+        "How does workflow versioning affect in-flight runs?"
+      ]
+    }
+  }
+}

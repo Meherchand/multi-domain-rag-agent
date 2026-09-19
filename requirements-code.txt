@@ -1,0 +1,8 @@
+# Optional: AST-aware source-code ingestion (src/ingestion/code_repository.py).
+# Not needed for documentation RAG, the API, the UIs, or the test suite.
+#
+#   pip install -r requirements-code.txt
+
+llama-index-core>=0.12.0
+tree-sitter>=0.23.0
+tree-sitter-java>=0.23.0

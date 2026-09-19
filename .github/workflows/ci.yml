@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# CI runs entirely offline: the test suite is pinned to the demo providers, so
+# no secrets are needed and no external service is contacted.
+env:
+  DEMO_MODE: "true"
+  API_KEY: ci-key-not-a-secret
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: |
+          ruff check .
+          ruff format --check .
+
+      - name: Test
+        run: pytest -q
+
+      - name: Demo smoke test
+        run: |
+          python cli.py index
+          python cli.py ask "How long is inventory reserved?" --domains order_service
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for committed secrets
+        run: ./scripts/scan_secrets.sh
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t multi-domain-rag-agent:ci .
+
+      - name: Start the API in demo mode and check it answers
+        run: |
+          docker run -d --name rag-ci \
+            -e DEMO_MODE=true -e API_KEY=ci-key-not-a-secret -e INIT_MODE=index \
+            -p 8000:8000 multi-domain-rag-agent:ci
+
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+
+          curl -fsS http://localhost:8000/health
+          curl -fsS -X POST http://localhost:8000/query \
+            -H "Content-Type: application/json" \
+            -H "X-API-Key: ci-key-not-a-secret" \
+            -d '{"question":"How long is inventory reserved?","domains":["order_service"]}'
+
+      - name: Container logs on failure
+        if: failure()
+        run: docker logs rag-ci

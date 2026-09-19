@@ -1,0 +1,37 @@
+[
+  {
+    "order_id": "demo-order-001",
+    "status": "PAID",
+    "customer_id": "cust-demo-0042",
+    "currency": "USD",
+    "total_cents": 8498,
+    "items": [
+      { "sku": "SKU-DEMO-1", "quantity": 2, "unit_price_cents": 1999 },
+      { "sku": "SKU-DEMO-7", "quantity": 1, "unit_price_cents": 4500 }
+    ],
+    "created_at": "2024-01-01T12:00:00Z",
+    "execution_time_ms": 842
+  },
+  {
+    "order_id": "demo-order-002",
+    "status": "PENDING_PAYMENT",
+    "customer_id": "cust-demo-0043",
+    "currency": "EUR",
+    "total_cents": 2500,
+    "items": [{ "sku": "SKU-DEMO-3", "quantity": 1, "unit_price_cents": 2500 }],
+    "created_at": "2024-01-02T09:15:00Z",
+    "reservation_expires_at": "2024-01-02T09:45:00Z",
+    "execution_time_ms": 311
+  },
+  {
+    "order_id": "demo-order-003",
+    "status": "REFUNDED",
+    "customer_id": "cust-demo-0042",
+    "currency": "USD",
+    "total_cents": 1999,
+    "items": [{ "sku": "SKU-DEMO-1", "quantity": 1, "unit_price_cents": 1999 }],
+    "created_at": "2023-12-20T17:40:00Z",
+    "refund_reason": "ITEM_DAMAGED",
+    "execution_time_ms": 1204
+  }
+]

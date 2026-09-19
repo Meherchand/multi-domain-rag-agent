@@ -1,0 +1,122 @@
+# Local stack. Everything reads from .env — nothing is hardcoded here.
+#
+#   docker compose up api ui              # API + Chainlit UI
+#   docker compose --profile vectordb up  # ...plus a local Milvus
+#   docker compose --profile postgres up  # ...plus Postgres for chat history
+#
+# The default profile runs in demo mode: no external services, no credentials.
+
+services:
+  api:
+    build: .
+    image: multi-domain-rag-agent:local
+    container_name: rag-api
+    ports:
+      - "8000:8000"
+    environment:
+      DEMO_MODE: ${DEMO_MODE:-true}
+      INIT_MODE: ${INIT_MODE:-auto}
+      RAG_PIPELINE: ${RAG_PIPELINE:-simple_rag}
+      API_KEY: ${API_KEY:?set API_KEY in .env}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-http://localhost:8502}
+      RETRIEVAL_TOP_K: ${RETRIEVAL_TOP_K:-5}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-}
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL:-}
+      EMBEDDING_API_KEY: ${EMBEDDING_API_KEY:-}
+      VECTOR_STORE: ${VECTOR_STORE:-memory}
+      VECTOR_STORE_URI: ${VECTOR_STORE_URI:-}
+      VECTOR_STORE_USER: ${VECTOR_STORE_USER:-}
+      VECTOR_STORE_PASSWORD: ${VECTOR_STORE_PASSWORD:-}
+      VECTOR_COLLECTION_PREFIX: ${VECTOR_COLLECTION_PREFIX:-kb_}
+    volumes:
+      # Mount the corpus read-only so documents can be edited without a rebuild.
+      - ./data:/app/data:ro
+    command: ["uvicorn", "api_app:app", "--host", "0.0.0.0", "--port", "8000"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 45s
+
+  ui:
+    build: .
+    image: multi-domain-rag-agent:local
+    container_name: rag-ui
+    ports:
+      - "8502:8502"
+    environment:
+      API_BASE_URL: http://api:8000
+      API_KEY: ${API_KEY:?set API_KEY in .env}
+      APP_NAME: ${APP_NAME:-Knowledge Assistant}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8502}
+      CHAT_PERSISTENCE_ENABLED: ${CHAT_PERSISTENCE_ENABLED:-false}
+      DB_HOST: ${DB_HOST:-postgres}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-ragagent}
+      DB_USERNAME: ${DB_USERNAME:-ragagent}
+      DB_PASSWORD: ${DB_PASSWORD:-}
+      CHAINLIT_AUTH_SECRET: ${CHAINLIT_AUTH_SECRET:-}
+      OAUTH_GOOGLE_CLIENT_ID: ${OAUTH_GOOGLE_CLIENT_ID:-}
+      OAUTH_GOOGLE_CLIENT_SECRET: ${OAUTH_GOOGLE_CLIENT_SECRET:-}
+    command: ["chainlit", "run", "chainlit_app.py", "--host", "0.0.0.0", "--port", "8502"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Optional: a local Milvus, for VECTOR_STORE=milvus.
+  # Authentication is disabled — this is for local development only.
+  milvus:
+    profiles: ["vectordb"]
+    image: milvusdb/milvus:v2.4.15
+    container_name: rag-milvus
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      ETCD_USE_EMBED: "true"
+      ETCD_DATA_DIR: /var/lib/milvus/etcd
+      ETCD_CONFIG_PATH: /milvus/configs/embedEtcd.yaml
+      COMMON_STORAGETYPE: local
+    volumes:
+      - milvus_data:/var/lib/milvus
+    ports:
+      - "19530:19530"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+
+  # Optional: chat history and share links, for CHAT_PERSISTENCE_ENABLED=true.
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:16-alpine
+    container_name: rag-postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-ragagent}
+      POSTGRES_USER: ${DB_USERNAME:-ragagent}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env to enable persistence}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-ragagent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  milvus_data:
+  postgres_data:
